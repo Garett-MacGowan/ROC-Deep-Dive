@@ -94,6 +94,19 @@ def full_confidence_found_all_the_hay_but_lost_the_needle_in_the_haystack() -> D
 
     """
     a = [1] + ([0] * 99)
+    p = [0.0] + ([0.0] * 99)
+
+    return create_performance_scenario_dict(actual=a, predicted_probabilities=p)
+
+
+def full_confidence_mistaken_hay_for_needle() -> Dict[np.array, np.array]:
+    """
+    This function creates an example actual and predicted_probabilities that represents a model that mistakes the
+    hay for the needle and vice versa.
+    Returns: dictionary containing the model result.
+
+    """
+    a = [1] + ([0] * 99)
     p = [0.0] + ([1.0] * 99)
 
     return create_performance_scenario_dict(actual=a, predicted_probabilities=p)
@@ -155,6 +168,7 @@ def main():
     wroc = wild_roc_curve()
     fanith = full_confidence_found_a_needle_in_the_haystack()
     fathbltnith = full_confidence_found_all_the_hay_but_lost_the_needle_in_the_haystack()
+    mhfn = full_confidence_mistaken_hay_for_needle()
 
     # Create the report directory
     report_path = Path('reports')
@@ -166,7 +180,8 @@ def main():
                        'gradient_confidence_perfect_model': gradient_fcpmr,
                        'wild_roc_curve': wroc,
                        'full_confidence_found_a_needle_in_the_haystack': fanith,
-                       'full_confidence_found_all_the_hay_but_lost_the_needle_in_the_haystack': fathbltnith
+                       'full_confidence_found_all_the_hay_but_lost_the_needle_in_the_haystack': fathbltnith,
+                       'full_confidence_mistaken_hay_for_needle': mhfn
                        }.items():
         # Generate the roc curve.
         plot_roc_curve(experiment_name=key, data=value, report_path=report_path)
