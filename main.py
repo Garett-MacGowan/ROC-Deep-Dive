@@ -112,8 +112,11 @@ def full_confidence_mistaken_hay_for_needle() -> Dict[np.array, np.array]:
     return create_performance_scenario_dict(actual=a, predicted_probabilities=p)
 
 
-def plot_roc_curve(experiment_name: str, data: Dict[np.array, np.array], report_path: Path) -> None:
-    fpr, tpr, _ = roc_curve(data['actual'], data['predicted_probabilities'], drop_intermediate=False)
+def plot_roc_curve(experiment_name: str,
+                   data: Dict[np.array, np.array],
+                   report_path: Path,
+                   threshold: bool = False) -> None:
+    fpr, tpr, thresholds = roc_curve(data['actual'], data['predicted_probabilities'], drop_intermediate=False)
     # Generate the area under the curve
     try:
         # Try catch except to catch when only one class is present in the actual labels. AUC cannot be computed
@@ -121,16 +124,25 @@ def plot_roc_curve(experiment_name: str, data: Dict[np.array, np.array], report_
     except ValueError:
         auc = 'Undefined (only one class present in truth values)'
     # Plot the ROC curve and add the label for the area under the curve.
-    plt.plot(fpr, tpr, color='red', label="auc=" + str(auc), marker='.')
-    plt.plot([0, 1], [0, 1], color='darkblue', linestyle='--', label='Random Model')
-    plt.xlabel("False Positives / (False Positives + True Negatives) = False Positive Rate")
-    plt.ylabel("True Positives / (True Positives + False Negatives) = True Positive Rate")
+    fig, ax = plt.subplots()
+    if threshold:
+        for i, thresh in enumerate(thresholds):
+            if i == 0:
+                continue
+            ax.annotate(f't: {thresh}', (fpr[i] + 0.01, tpr[i] + 0.01))
+    ax.plot(fpr, tpr, color='red', label="auc=" + str(auc), marker='.')
+    ax.plot([0, 1], [0, 1], color='darkblue', linestyle='--', label='Random Model')
+    ax.set_aspect(aspect='equal')
+    plt.xlabel("False Positives / \n(False Positives + True Negatives)\n = False Positive Rate")
+    plt.ylabel("True Positives / \n(True Positives + False Negatives)\n = True Positive Rate")
     plt.legend(loc=4)
     plt.ylim(-0.1, 1.1)
     plt.xlim(-0.1, 1.1)
     # Save the figure
+    plt.tight_layout()
     plt.savefig(Path(report_path, f'roc_curve_{experiment_name}.png'))
     # Clear the figure
+    plt.show()
     plt.clf()
     # Close the plot
     plt.close()
@@ -176,17 +188,18 @@ def main():
         mkdir(report_path)
 
     # Generate graphs for each of the ROC scenarios
-    for key, value in {'random_model': rm,
-                       'gradient_confidence_perfect_model': gradient_fcpmr,
-                       'wild_roc_curve': wroc,
-                       'full_confidence_found_a_needle_in_the_haystack': fanith,
-                       'full_confidence_found_all_the_hay_but_lost_the_needle_in_the_haystack': fathbltnith,
-                       'full_confidence_mistaken_hay_for_needle': mhfn
+    for key, value in {'random_model': [rm, True],
+                       'gradient_confidence_perfect_model': [gradient_fcpmr, True],
+                       'wild_roc_curve': [wroc, False],
+                       'full_confidence_found_a_needle_in_the_haystack': [fanith, True],
+                       'full_confidence_found_all_the_hay_but_lost_the_needle_in_the_haystack': [fathbltnith, True],
+                       'full_confidence_mistaken_hay_for_needle': [mhfn, True]
                        }.items():
         # Generate the roc curve.
-        plot_roc_curve(experiment_name=key, data=value, report_path=report_path)
+
+        plot_roc_curve(experiment_name=key, data=value[0], report_path=report_path, threshold=value[1])
         # Generate the precision recall curve.
-        plot_precision_recall_curve(experiment_name=key, data=value, report_path=report_path)
+        plot_precision_recall_curve(experiment_name=key, data=value[0], report_path=report_path)
 
 
 if __name__ == '__main__':
